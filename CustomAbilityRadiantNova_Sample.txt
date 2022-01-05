@@ -1,0 +1,63 @@
+//===========================================================================
+// A custom ability that heals allies in a target circular area, where the amount healed
+// is divided by the number of allies targeted.
+//===========================================================================
+
+function Trig_RadiantNova_Conditions takes nothing returns boolean
+    return GetSpellAbilityId() == 'A00F'
+endfunction
+
+function RadiantNovaTargetFilter takes unit target, unit caster returns boolean
+    if IsUnitAlly(target, GetOwningPlayer(caster)) then
+    if not IsUnitHidden(target) then
+        return true
+    endif
+    endif
+    return false
+endfunction
+
+function Trig_RadiantNova_Actions takes nothing returns nothing
+    local unit caster = GetTriggerUnit()
+    local group g = CreateGroup()
+    local unit u = null
+    local integer numTargets = 0
+    local real x = GetSpellTargetX()
+    local real y = GetSpellTargetY()
+    
+    // Count number of targets.
+    call GroupEnumUnitsInRange(g, x, y, 300.0, null)
+    loop
+        set u = FirstOfGroup(g)
+        exitwhen u == null
+        if RadiantNovaTargetFilter(u, caster) then
+            set numTargets = numTargets + 1
+        endif
+        call GroupRemoveUnit(g, u)
+    endloop
+    
+    call GroupClear(g)
+    
+    // Heal targets by amount divided by number of targets.
+    call GroupEnumUnitsInRange(g, x, y, 300.0, null)
+    loop
+        set u = FirstOfGroup(g)
+        exitwhen u == null
+        if RadiantNovaTargetFilter(u, caster) then
+            call HealUnit(caster, u, (375.0 + 75.0 * GetUnitAbilityLevel(caster, 'A00F') + 1.2 * GetUnitSpellPower(caster)) / I2R(numTargets))
+            call DestroyEffect(AddSpecialEffectTarget("MDX\\Effects\\HealYellow.mdx", u, "origin"))
+        endif
+        call GroupRemoveUnit(g, u)
+    endloop
+    
+    set caster = null
+    call DestroyGroup(g)
+    set g = null
+endfunction
+
+//===========================================================================
+function InitTrig_RadiantNova takes nothing returns nothing
+    set gg_trg_RadiantNova = CreateTrigger()
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_RadiantNova, EVENT_PLAYER_UNIT_SPELL_EFFECT)
+    call TriggerAddCondition(gg_trg_RadiantNova, Condition(function Trig_RadiantNova_Conditions))
+    call TriggerAddAction(gg_trg_RadiantNova, function Trig_RadiantNova_Actions)
+endfunction

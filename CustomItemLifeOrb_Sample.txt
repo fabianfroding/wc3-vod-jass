@@ -1,0 +1,34 @@
+//===========================================================================
+// A custom item ability that when equipped by a unit, heals the wearer whenever it deals magic damage.
+//===========================================================================
+
+function Trig_ItemAbilLifeOrb_Conditions takes nothing returns boolean
+    if udg_DamageMagic then
+    if UnitHasItemOfTypeBJ(GetEventDamageSource(), udg_ItemIdLifeOrb) then
+        return true
+    endif
+    endif
+    return false
+endfunction
+
+function Trig_ItemAbilLifeOrb_Actions takes nothing returns nothing
+    local unit source = GetEventDamageSource()
+    
+    call DestroyEffect(AddSpecialEffectTarget("MDX\\Effects\\HealGreen.mdx", source, "origin"))
+    call HealUnit(source, source, 0.3 * GetEventDamage())
+    
+    set source = null
+endfunction
+
+//===========================================================================
+function InitTrig_ItemAbilLifeOrb takes nothing returns nothing
+    local integer i = 0
+    set gg_trg_ItemAbilLifeOrb = CreateTrigger()
+    loop
+        call TriggerRegisterPlayerUnitEvent(gg_trg_ItemAbilLifeOrb, Player(i), EVENT_PLAYER_UNIT_DAMAGED, null)
+        set i = i + 1
+        exitwhen i > bj_MAX_PLAYER_SLOTS
+    endloop
+    call TriggerAddCondition(gg_trg_ItemAbilLifeOrb, Condition(function Trig_ItemAbilLifeOrb_Conditions))
+    call TriggerAddAction(gg_trg_ItemAbilLifeOrb, function Trig_ItemAbilLifeOrb_Actions)
+endfunction

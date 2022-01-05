@@ -1,0 +1,50 @@
+//===========================================================================
+// AI script to determine when an enemy should use an ability.
+//===========================================================================
+
+function IsAbilityCooldownDone takes unit u, integer abilityId returns boolean
+    return BlzGetUnitAbilityCooldownRemaining(u, abilityId) == 0.0
+endfunction
+
+function SetEnemyAbilityAvailability takes unit enemy, real hpPercentUse, integer abilityId returns nothing
+    local real percentHealth = GetUnitState(enemy, UNIT_STATE_LIFE) / GetUnitState(enemy, UNIT_STATE_MAX_LIFE)
+    local integer abilityLevel = GetUnitAbilityLevel(enemy, abilityId)
+    
+    if percentHealth > hpPercentUse and abilityLevel > 0 then
+        call UnitRemoveAbility(enemy, abilityId)
+    elseif percentHealth <= hpPercentUse and abilityLevel == 0 then
+        call UnitAddAbility(enemy, abilityId)
+    endif
+endfunction
+
+/*  enemy:          The enemy that should use the ability.
+    hpPercentUse:   The HP percentage at which the enemy can use the ability (0.0 - 1.0).
+    abilityId:      The ability that the enemy should use.
+    order:          The order string of the ability.
+*/
+
+function EnemyUseInstantAbility takes unit enemy, integer abilityId, string order, real hpPercentUse returns nothing
+    call SetEnemyAbilityAvailability(enemy, hpPercentUse, abilityId)
+    
+    if IsAbilityCooldownDone(enemy, abilityId) then
+        call IssueImmediateOrder(enemy, order)
+    endif
+endfunction
+
+function EnemyUseTargetPointAbility takes unit enemy, integer abilityId, string order, real hpPercentUse, real x, real y returns nothing
+    call SetEnemyAbilityAvailability(enemy, hpPercentUse, abilityId)
+    
+    if IsAbilityCooldownDone(enemy, abilityId) then
+        call IssuePointOrder(enemy, order, x, y)
+    endif
+endfunction
+
+function EnemyUseTargetUnitAbility takes unit enemy, integer abilityId, string order, real hpPercentUse, unit target returns nothing
+    call SetEnemyAbilityAvailability(enemy, hpPercentUse, abilityId)
+    
+    if IsAbilityCooldownDone(enemy, abilityId) then
+        call IssueTargetOrder(enemy, order, target)
+    endif
+endfunction
+
+//===========================================================================

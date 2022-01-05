@@ -1,0 +1,57 @@
+//===========================================================================
+// A custom script that grants experience to player units, instead of relying on Warcraft 3's built-in experience system.
+//===========================================================================
+
+function CreepExpRewardPlayerHeroFilter takes unit hero, unit dying returns boolean
+    if IsUnitType(hero, UNIT_TYPE_HERO) then
+    if IsUnitEnemy(hero, GetOwningPlayer(dying)) then
+        return true
+    endif
+    endif
+    return false
+endfunction
+
+function Trig_CreepExpReward_Conditions takes nothing returns boolean
+    if GetOwningPlayer(GetTriggerUnit()) == Player(PLAYER_NEUTRAL_AGGRESSIVE) then
+    if not IsUnitType(GetTriggerUnit(), UNIT_TYPE_SUMMONED) then
+    if not IsUnitIllusion(GetTriggerUnit()) then
+    if GetUnitAbilityLevel(GetTriggerUnit(), 'Aloc') == 0 then
+    if GetUnitPointValue(GetTriggerUnit()) > 0 then
+        return true
+    endif
+    endif
+    endif
+    endif
+    endif
+    return false
+endfunction
+
+function Trig_CreepExpReward_Actions takes nothing returns nothing
+    local unit dying = GetTriggerUnit()
+    local group g = CreateGroup()
+    local unit playerHero = null
+    local integer expAmount = GetUnitPointValue(dying) + 2
+    
+    call GroupEnumUnitsInRange(g, GetUnitX(dying), GetUnitY(dying), 2000.0, null)
+    
+    loop
+        set playerHero = FirstOfGroup(g)
+        exitwhen playerHero == null
+        if CreepExpRewardPlayerHeroFilter(playerHero, dying) then
+            call AddHeroXP(playerHero, expAmount, true)
+        endif
+        call GroupRemoveUnit(g, playerHero)
+    endloop
+    
+    set dying = null
+    call DestroyGroup(g)
+    set g = null
+endfunction
+
+//===========================================================================
+function InitTrig_CreepExpReward takes nothing returns nothing
+    set gg_trg_CreepExpReward = CreateTrigger()
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_CreepExpReward, EVENT_PLAYER_UNIT_DEATH)
+    call TriggerAddCondition(gg_trg_CreepExpReward, Condition(function Trig_CreepExpReward_Conditions))
+    call TriggerAddAction(gg_trg_CreepExpReward, function Trig_CreepExpReward_Actions)
+endfunction

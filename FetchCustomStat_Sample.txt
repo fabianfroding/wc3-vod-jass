@@ -1,0 +1,49 @@
+//===========================================================================
+// Script that fetches a custom stat, Spell Power, based on the unit's status and equipped items.
+//===========================================================================
+
+function GetUnitSpellPower takes unit u returns real
+    local real spellPower = 0.
+    local real multiplier = 1.
+    local integer inventoryIndex = 0
+
+    if IsUnitType(u, UNIT_TYPE_HERO) then
+        set spellPower = spellPower + I2R(GetHeroInt(u, true))
+    endif
+    
+    //----- Fire Totem Aura -----//
+    if GetUnitAbilityLevel(u, 'B009') > 0 then
+        set multiplier = multiplier + (0.05 + 0.05 * GetUnitAbilityLevel(udg_FireTotemCaster, 'A01G'))
+    endif
+
+    //----- Items -----//
+    loop
+        exitwhen inventoryIndex > 5
+        if GetItemTypeId(UnitItemInSlot(u, inventoryIndex)) == udg_ItemIdForbiddenGrimoire then
+            set spellPower = spellPower + 50.0
+        endif
+        if GetItemTypeId(UnitItemInSlot(u, inventoryIndex)) == udg_ItemIdLifeOrb then
+            set spellPower = spellPower + 30.0
+        endif
+        if GetItemTypeId(UnitItemInSlot(u, inventoryIndex)) == udg_ItemIdScepterOfTheVoid then
+            set spellPower = spellPower + 40.0
+        endif
+        set inventoryIndex = inventoryIndex + 1
+    endloop
+    
+    if UnitHasItemOfTypeBJ(u, udg_ItemIdBloodtaintedCrystal) then
+        set spellPower = spellPower + 0.05 * GetUnitState(u, UNIT_STATE_MAX_LIFE)
+    endif
+    
+    if UnitHasItemOfTypeBJ(u, udg_ItemIdForbiddenGrimoire) then
+        set multiplier = multiplier + 0.2
+    endif
+
+    if multiplier < 0. then
+        set multiplier = 0.
+    endif
+    set spellPower = spellPower * multiplier
+
+    return spellPower
+endfunction
+//===========================================================================
